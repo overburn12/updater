@@ -1,0 +1,50 @@
+
+{% macro block_header(header) %}
+  <div class="element-block">
+      <div class="element-header">
+          <h2>{{ header }}</h2>
+      </div>
+      <div class="element-content">
+{% endmacro %}
+
+{% macro block_footer() %}
+</div></div>
+{% endmacro %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{% block title %}{% endblock %}</title>
+  <style>
+    body{
+      background-color: blanchedalmond;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .element-block{
+        margin-top: 40px;
+
+        background-color: white;
+        border-radius: 10px;
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-bottom: 20px;
+        padding-top: 10px;
+    }
+    .element-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+ 
+    {% block content %}{% endblock %}<br><br>
+  
+</body>
+</html>

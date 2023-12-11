@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}
+    TuftedFox - Admin Dashboard
+{% endblock %}
+
+{% block head %}
+    <style>
+        .element-block{
+            width: 600px;
+        }
+        .pre-scroll{
+            overflow: auto;
+            max-height: 30em; /* or adjust to your desired height */
+        }
+
+        pre{
+            display: block;
+            background-color: #030303;
+            border: 0px;
+            border-radius: 10px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #f5f5f5;
+            text-align: left;
+        }
+        #admin-links{
+            background-color: #030303;
+            border: 0px;
+            border-radius: 10px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #f5f5f5;
+            text-align: left;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+{{ block_header('Admin Dashboard')}}
+    <div id="admin-links">
+        ----------------------------<br>
+        &bull; <a href="/logout">Logout</a><br>
+    </div>
+{{ block_footer()}}
+
+{{ block_header('Log')}} 
+    <pre><div class="pre-scroll"><code> {{ log_content }} </code></div></pre>
+    <p>Server birthdate: </p>
+{{ block_footer() }}
+
+
+{% endblock %}
