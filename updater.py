@@ -4,6 +4,8 @@ from flask import Flask, render_template, request, jsonify, abort, Response, g, 
 from functools import wraps
 from werkzeug.security import check_password_hash, generate_password_hash
 from dotenv import load_dotenv
+import sqlite3
+from sqlalchemy import text
 
 app = Flask(__name__)
 
@@ -22,20 +24,41 @@ app.secret_key = os.getenv('SECRET_KEY')
 admin_username = os.getenv('ADMIN_NAME')
 admin_password = os.getenv('ADMIN_PASSWORD')
 admin_password_hash = generate_password_hash(admin_password)  
+root_directory = os.getenv('ROOT_DIRECTORY')
 
 servers = []
 with open('servers.json', 'r') as file:
     servers = json.load(file)
 
 #--------------------------------------------------------------------------------------
+# database loading
+#--------------------------------------------------------------------------------------
+
+def get_db(server):
+    # Create the database directory if it doesn't exist
+    db_dir = os.path.join(root_directory, server, 'instance')
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+    
+    db_path = os.path.join(db_dir, f"{server}.db")
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(db_path)
+    return db
+
+#--------------------------------------------------------------------------------------
 # functions
 #--------------------------------------------------------------------------------------
+
+def is_valid_task(taskname):
+    valid_tasks = ["start", "stop", "restart", "status"]
+    return taskname in valid_tasks
 
 def is_valid_server(server):
     return server in servers
 
 def read_log(server):
-    log_file_path = os.path.expanduser(f'~/{server}/data/update.log')
+    log_file_path = os.path.join(root_directory, server, 'data', 'update.log')
     try:
         with open(log_file_path, 'r') as file:
             return file.read()
@@ -50,7 +73,7 @@ def prepend_to_log(file_path, content):
 
 def update_server(server):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    working_directory = os.path.expanduser(f'~/{server}')  # Constructs the path ~/server
+    working_directory = os.path.join(root_directory, server) 
 
     result = subprocess.run(
         'git pull',
@@ -96,11 +119,6 @@ def admin_login():
             flash('Invalid credentials')
     return render_template('admin_login.html')  # Your login page template
 
-@app.route('/sql')
-@admin_required
-def sql_page():
-    return render_template("admin_sql.html")
-
 @app.route('/logout')
 def logout():
     session.pop('logged_in', None)
@@ -110,82 +128,90 @@ def logout():
 # server api
 #--------------------------------------------------------------------------------------
 
-@app.route('/read_log', methods=['GET', 'POST'])
+@app.route('/log/<servername>')
 @admin_required
-def get_server_log(server_name):
-    return read_log(server_name)
+def get_server_log(servername):
+    if not is_valid_server(servername):
+        return jsonify({'error': f"Server '{servername}' not found."}), 404
+
+    log_content = read_log(servername)
+    return jsonify({'log': log_content})
+
+@app.route('/update/<servername>', methods=['POST'])
+@admin_required
+def run_update(servername):
+    if not is_valid_server(servername):
+        return jsonify({'error': f"Server '{servername}' not found."}), 404
     
-@app.route('/execute-query', methods=['POST', 'GET'])
+    update_result = update_server(servername)
+    return jsonify({'result': update_result})
+
+
+@app.route('/sql/<servername>/', methods=['POST', 'GET'])
 @admin_required
-def execute_query():
-    query_data = request.get_json()
-    query = query_data['query']
+def execute_query(servername):
+    if not is_valid_server(servername):
+        return jsonify({'error': f"Server '{servername}' not found."}), 404
+    
+    if request.method == 'GET':
+        return render_template("admin_sql.html", servername=servername)
+    else:
+        query_data = request.get_json()
+        query = query_data['query']
 
-    with db.engine.connect() as connection:
-        result = connection.execute(text(query))
-        columns = list(result.keys())  # Convert columns to a list
+        # Establish a new database connection for this query
+        db = get_db(servername)
+        cursor = db.cursor()
 
-        rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        try:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            columns = [column[0] for column in cursor.description]
+            db.commit()  # Commit if necessary (for INSERT, UPDATE, DELETE)
 
-    return jsonify({'columns': columns, 'rows': rows})
+            # Prepare the results to be sent as JSON
+            result = {
+                'columns': columns,
+                'rows': [dict(zip(columns, row)) for row in rows]
+            }
+        except Exception as e:
+            db.rollback()  # Rollback in case of error
+            result = {'error': str(e)}
+        finally:
+            db.close()  # Close the connection
+
+        return jsonify(result)
+
 
 #--------------------------------------------------------------------------------------
 # systemctl controls
 #--------------------------------------------------------------------------------------
 
-@app.route('/restart/<server>')
+@app.route('/systemctl/<taskname>/<servername>')
 @admin_required
-def restart_server(server):
-    if not is_valid_server(server):
+def run_server_cmd(taskname,servername):
+    if not is_valid_server(servername):
         return "Invalid server name.", 400
-
-    try:
-        subprocess.run(f'sudo systemctl restart {server}', shell=True, check=True)
-        return "Server restarted successfully!"
-    except subprocess.CalledProcessError:
-        return "Failed to restart the server."
-
-@app.route('/stop/<server>')
-@admin_required
-def stop_server(server):
-    if not is_valid_server(server):
-        return "Invalid server name.", 400
-
-    try:
-        subprocess.run(f'sudo systemctl stop {server}', shell=True, check=True)
-        return "Server stopped successfully!"
-    except subprocess.CalledProcessError:
-        return "Failed to stop the server."
-
-@app.route('/start/<server>')
-@admin_required
-def start_server(server):
-    if not is_valid_server(server):
-        return "Invalid server name.", 400
-
-    try:
-        subprocess.run(f'sudo systemctl start {server}', shell=True, check=True)
-        return "Server started successfully!"
-    except subprocess.CalledProcessError:
-        return "Failed to start the server."
-
-@app.route('/status/<server>')
-@admin_required
-def status_server(server):
-    if not is_valid_server(server):
-        return "Invalid server name.", 400
-    try:
-        result = subprocess.run(
-            f'sudo systemctl status {server}',
-            shell=True,
-            capture_output=True,
-            text=True
-        )
-        systemctl_status_log = result.stdout
-        return render_template("admin_dashboard.html", log_content=systemctl_status_log)
-    except subprocess.CalledProcessError:
-        systemctl_status_log = "Failed to load the server status."
-        return render_template("admin_dashboard.html", log_content=systemctl_status_log)                
+        
+    if not is_valid_task(taskname):
+        return "Invalid task name.", 400
+    if(taskname=='status'):
+        try:
+            result = subprocess.run(['sudo','systemctl','status', servername],
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            systemctl_status_log = result.stdout
+            return jsonify({"status": systemctl_status_log})
+        except subprocess.CalledProcessError:
+            return jsonify({"error": "Failed to load the server status."})              
+    else:
+        try:
+            subprocess.run(["sudo", "systemctl", taskname, servername], check=True)
+        except subprocess.CalledProcessError:
+            return jsonify({"error": "Failed to run the server task."}) 
+    return "Server task completed."
 
 #--------------------------------------------------------------------------------------
 
