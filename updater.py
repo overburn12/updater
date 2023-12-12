@@ -137,7 +137,7 @@ def get_server_log(servername):
     log_content = read_log(servername)
     return jsonify({'log': log_content})
 
-@app.route('/updater/update/<servername>', methods=['POST'])
+@app.route('/updater/update/<servername>', methods=['GET','POST'])
 @admin_required
 def run_update(servername):
     if not is_valid_server(servername):

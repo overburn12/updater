@@ -6,33 +6,23 @@
 {% endblock %}
 
 {% block head %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
 
-    {{ block_header(servername)}}
+{{ block_header(servername)}}
     <textarea id="queryInput" style="width: 100%; height: 30em;"></textarea>
-        <button onclick="submitQuery()">Run Query</button>
-        <button onclick="clearOutput()">Clear Output</button>
-        date name: <input id="dateColumnName" type="text" placeholder="Enter date column name">,
-        value name: <input id="valueColumnName" type="text" placeholder="Enter value column name">
-    {{ block_footer() }}
+    <button onclick="submitQuery()">Run Query</button>
+    <button onclick="clearOutput()">Clear Output</button>
+{{ block_footer() }}
 
-    {{block_header('Query Results')}}
-    <canvas id="myChart" style="width: 400px; height: 300px;"></canvas>
+{{block_header('Query Results')}}
     <div id="query_results"></div>
-    {{block_footer()}}
+{{block_footer()}}
 
 <script>
-    let myChart = null;
-
     function submitQuery() {
-        clearOutput();
-        const dateColumnName = document.getElementById('dateColumnName').value;
-        const valueColumnName = document.getElementById('valueColumnName').value;
+        document.getElementById('query_results').innerHTML = '';
         const query = document.getElementById('queryInput').value;
         var server_name = '{{ servername }}';
         fetch('https://overburn.org/updater/sql/' + server_name, {
@@ -44,53 +34,11 @@
         })
         .then(response => response.json())
         .then(data => {
-
             document.getElementById('query_results').innerHTML = createHtmlTableFromData(data);
             console.log('Data received:', data);
-/*
-            // Prepare the data for Chart.js
-            var chartData = data.rows.map(row => {
-                return {
-                    x: moment(row[dateColumnName], "YYYY-MM-DD HH:mm").toDate(), // Dynamically access the date column
-                    y: row[valueColumnName] // Dynamically access the value column
-                };
-            });
-
-            // Destroy the existing chart before creating a new one
-            if (myChart) {
-                myChart.destroy();
-            }
-
-            // Create a new Chart.js chart
-            var ctx = document.getElementById('myChart').getContext('2d');
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: [{
-                        label: 'Your Dataset',
-                        data: chartData // your formatted data array
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: { // 'x' for the x-axis
-                            type: 'time',
-                            time: {
-                                unit: 'day',
-                                // other time scale options as needed
-                            },
-                        }
-                    }
-                }
-            });
-  */     
         }).catch(error => {
             console.log('catch-error: ', error);
         });
-    }
-
-    function clearOutput(){
-        document.getElementById('query_results').innerHTML = '';
     }
 
     function createHtmlTableFromData(data) {
