@@ -147,7 +147,7 @@ def run_update(servername):
     return jsonify({'result': update_result})
 
 
-@app.route('/updater/sql/<servername>/', methods=['POST', 'GET'])
+@app.route('/updater/sql/<servername>', methods=['POST', 'GET'])
 @admin_required
 def execute_query(servername):
     if not is_valid_server(servername):
