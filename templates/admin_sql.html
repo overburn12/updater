@@ -35,7 +35,7 @@
         const valueColumnName = document.getElementById('valueColumnName').value;
         const query = document.getElementById('queryInput').value;
         var server_name = '{{ servername }}';
-        fetch('/updater/sql/' + server_name, {
+        fetch('https://overburn.org/updater/sql/' + server_name, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
