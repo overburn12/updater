@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3"></script>
 {% endblock %}
 
 {% block content %}
@@ -29,15 +30,16 @@
 
 {{block_header('Query Results')}}
 <div>
-    <input type="text" id="timeColumn" placeholder="Time Column Name">
+    <input type="text" id="timeColumn" placeholder="Time Column Name" value="date">
     <select id="timeGranularity">
         <option value="yearly">Yearly</option>
         <option value="monthly">Monthly</option>
-        <option value="daily">Daily</option>
+        <option value="daily" selected>Daily</option>
         <option value="hourly">Hourly</option>
         <option value="minutely">Minutely</option>
         <option value="secondly">Secondly</option>
     </select>
+    <input type="text" id="dataColumn" placeholder="Data Column Name" value="total_hits">
     <button onclick="renderChart()">Render Chart</button>
 </div>
 <canvas id="myChart"></canvas>
@@ -45,6 +47,9 @@
 {{block_footer()}}
 
 <script>
+    var sqlResponse = null;
+    var myChart = null;
+
     function submitQuery() {
         document.getElementById('query_results').innerHTML = '';
         const query = document.getElementById('queryInput').value;
@@ -59,7 +64,7 @@
         .then(response => response.json())
         .then(data => {
             document.getElementById('query_results').innerHTML = createHtmlTableFromData(data);
-            console.log('Data received:', data);
+            sqlResponse = data;
         }).catch(error => {
             console.log('catch-error: ', error);
         });
@@ -81,6 +86,7 @@
         tableHtml += "</tbody></table>";
         return tableHtml;
     }
+
     function saveQuery() {
         const title = prompt("Enter a title for the query:");
         if (title) {
@@ -136,18 +142,25 @@
 
     function renderChart() {
         const timeColumn = document.getElementById('timeColumn').value;
+        const dataColumn = document.getElementById('dataColumn').value;
         const granularity = document.getElementById('timeGranularity').value;
-        const queryData = JSON.parse(localStorage.getItem('lastQueryResponse'));
+        const queryData = sqlResponse;
 
         // Process the data to fit into the chart
         // This will depend on the structure of your queryData
-        const processedData = processDataForChart(queryData, timeColumn, granularity);
-
+        const processedData = processDataForChart(queryData, timeColumn, dataColumn, granularity);
         const ctx = document.getElementById('myChart').getContext('2d');
-        const myChart = new Chart(ctx, {
+
+
+        // Destroy the existing chart instance if it exists
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
             type: 'line', // or 'bar', depending on your preference
             data: {
-                labels: processedData.labels,
+                labels: processedData.labels, // These should be formatted date strings
                 datasets: [{
                     label: 'Data',
                     data: processedData.data,
@@ -157,24 +170,123 @@
             options: {
                 scales: {
                     x: {
-                        type: 'time',
-                        time: {
-                            unit: granularity
-                        }
+                        // No special configuration for time, treat labels as regular strings
                     }
                 }
             }
         });
     }
 
-    function processDataForChart(data, timeColumn, granularity) {
-        // Implement the logic to process queryData into a format suitable for Chart.js
-        // This might include parsing date strings, aggregating data, etc.
-        // Return an object with 'labels' and 'data' arrays
-
-        return { labels: [], data: [] };
+    function processDataForChart(data, timeColumn, dataColumn, granularity) {
+        // Ensure there is data to process
+        if (!data || !data.rows || data.rows.length === 0) {
+            console.error("No data to process");
+            return { labels: [], data: [] };
+        }
+    
+        // Generate a complete list of time blocks
+        const fullTimeBlocks = generateTimeBlocks(data, timeColumn, granularity);
+    
+        // Merge actual query data into the generated time blocks
+        const mergedData = mergeDataIntoTimeBlocks(data, fullTimeBlocks, timeColumn, dataColumn);
+    
+        return {
+            labels: mergedData.map(item => item.time),
+            data: mergedData.map(item => item.value)
+        };
     }
+    
+    function formatDateAsString(timeValue) {
+        // Format your date as a string here
+        // For example: return timeValue.split('T')[0]; // If your date is in ISO format
+        return timeValue; // Placeholder implementation
+    }
+    
 
+    function generateTimeBlocks(data, timeColumn, granularity) {
+        if (data.rows.length === 0) {
+            return [];
+        }
+    
+        // Get the first and last time values from the data
+        const firstTime = new Date(data.rows[0][timeColumn]);
+        const lastTime = new Date(data.rows[data.rows.length - 1][timeColumn]);
+        console.log('time block first and last: ', firstTime, lastTime);
+    
+        let timeBlocks = [];
+        let currentTime = new Date(firstTime);
+    
+        while (currentTime <= lastTime) {
+            timeBlocks.push(formatTime(currentTime, granularity));
+            incrementTime(currentTime, granularity);
+        }
+    
+        return timeBlocks;
+    }
+    
+    function formatTime(date, granularity) {
+        // Adjust this to match the format of your SQL data ('YYYY-MM-DD')
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // JavaScript months are 0-indexed
+        const day = date.getDate().toString().padStart(2, '0');
+    
+        switch (granularity) {
+            case 'yearly':
+                return `${year}`;
+            case 'monthly':
+                return `${year}-${month}`;
+            case 'daily':
+                return `${year}-${month}-${day}`;
+            // Add cases for hourly, minutely, and secondly if needed
+            default:
+                return `${year}-${month}-${day}`;
+        }
+    }
+    
+    
+    function incrementTime(date, granularity) {
+        switch (granularity) {
+            case 'yearly':
+                date.setFullYear(date.getFullYear() + 1);
+                break;
+            case 'monthly':
+                date.setMonth(date.getMonth() + 1);
+                break;
+            case 'daily':
+                date.setDate(date.getDate() + 1);
+                break;
+            case 'hourly':
+                date.setHours(date.getHours() + 1);
+                break;
+            case 'minutely':
+                date.setMinutes(date.getMinutes() + 1);
+                break;
+            case 'secondly':
+                date.setSeconds(date.getSeconds() + 1);
+                break;
+        }
+    }
+    
+    function mergeDataIntoTimeBlocks(data, timeBlocks, timeColumn, dataColumn) {
+        // Convert data rows into a map for easier lookup
+        const dataMap = new Map(data.rows.map(row => [row[timeColumn], row[dataColumn]]));
+    
+        console.log("Time Blocks:", timeBlocks);
+        console.log("Data Map:", dataMap);
+    
+        // Merge actual data into the time blocks
+        const mergedData = timeBlocks.map(block => {
+            const value = dataMap.has(block) ? dataMap.get(block) : 0;
+            return {
+                time: block,
+                value: value
+            };
+        });
+    
+        console.log("Merged Data:", mergedData);
+        return mergedData;
+    }
+    
     // Call updateSavedQueriesList to display saved queries on page load
     updateSavedQueriesList();
 </script>
