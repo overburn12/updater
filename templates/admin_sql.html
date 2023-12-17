@@ -7,6 +7,16 @@
 
 {% block head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3"></script>
+    <style>
+        #chartContainer {
+            width: 800px;
+            overflow-x: auto; /* Enable horizontal scrolling */
+        }
+        
+        #myChart {
+            display: block;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -30,19 +40,21 @@
 
 {{block_header('Query Results')}}
 <div>
-    <input type="text" id="timeColumn" placeholder="Time Column Name" value="date">
+    <input type="text" id="timeColumn" placeholder="Time Column Name" value="hour_block">
     <select id="timeGranularity">
         <option value="yearly">Yearly</option>
         <option value="monthly">Monthly</option>
-        <option value="daily" selected>Daily</option>
-        <option value="hourly">Hourly</option>
+        <option value="daily">Daily</option>
+        <option value="hourly" selected>Hourly</option>
         <option value="minutely">Minutely</option>
         <option value="secondly">Secondly</option>
     </select>
-    <input type="text" id="dataColumn" placeholder="Data Column Name" value="total_hits">
+    <input type="text" id="dataColumn" placeholder="Data Column Name" value="hit_count">
     <button onclick="renderChart()">Render Chart</button>
 </div>
-<canvas id="myChart"></canvas>
+<div id="chartContainer">
+    <canvas id="myChart"></canvas>
+</div>
 <div id="query_results"></div>
 {{block_footer()}}
 
@@ -149,28 +161,49 @@
         // Process the data to fit into the chart
         // This will depend on the structure of your queryData
         const processedData = processDataForChart(queryData, timeColumn, dataColumn, granularity);
-        const ctx = document.getElementById('myChart').getContext('2d');
-
+        
+        const minWidthPerDataPoint = 10; // Minimum width per data point in pixels
+        const extraWidth = 100; // Extra width for axes and borders
+        const totalWidth = minWidthPerDataPoint * processedData.labels.length + extraWidth;
+        
+        // Set the width of the canvas
+        const canvas = document.getElementById('myChart');
+        canvas.style.width = totalWidth + 'px';
+        canvas.style.height = '500px';
 
         // Destroy the existing chart instance if it exists
         if (myChart) {
             myChart.destroy();
         }
+        
+        // Get the context of the canvas
+        const ctx = canvas.getContext('2d');
 
         myChart = new Chart(ctx, {
             type: 'line', // or 'bar', depending on your preference
             data: {
-                labels: processedData.labels, // These should be formatted date strings
+                labels: processedData.labels,
                 datasets: [{
                     label: 'Data',
-                    data: processedData.data,
+                    data: processedData.data
                     // other dataset properties
                 }]
             },
             options: {
+                responsive: false,
+                maintainAspectRatio: false,
                 scales: {
+                    y: {
+                        ticks: {
+                          stepSize: 1
+                        }
+                    },
                     x: {
-                        // No special configuration for time, treat labels as regular strings
+                        ticks: {
+                            autoSkip: true, // Automatically skip labels to avoid overlap
+                            maxRotation: 45, // Maximum label rotation in degrees
+                            minRotation: 45 // Minimum label rotation in degrees
+                        }
                     }
                 }
             }
@@ -225,10 +258,10 @@
     }
     
     function formatTime(date, granularity) {
-        // Adjust this to match the format of your SQL data ('YYYY-MM-DD')
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0'); // JavaScript months are 0-indexed
         const day = date.getDate().toString().padStart(2, '0');
+        const hour = date.getHours().toString().padStart(2, '0');
     
         switch (granularity) {
             case 'yearly':
@@ -237,9 +270,11 @@
                 return `${year}-${month}`;
             case 'daily':
                 return `${year}-${month}-${day}`;
-            // Add cases for hourly, minutely, and secondly if needed
+            case 'hourly':
+                return `${year}-${month}-${day} ${hour}:00`;
+            // Add cases for minutely and secondly if needed
             default:
-                return `${year}-${month}-${day}`;
+                return `${year}-${month}-${day} ${hour}:00`; // Default to hourly if granularity is not specified
         }
     }
     
