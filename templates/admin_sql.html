@@ -28,7 +28,20 @@
 {{ block_footer() }}
 
 {{block_header('Query Results')}}
-    <div id="query_results"></div>
+<div>
+    <input type="text" id="timeColumn" placeholder="Time Column Name">
+    <select id="timeGranularity">
+        <option value="yearly">Yearly</option>
+        <option value="monthly">Monthly</option>
+        <option value="daily">Daily</option>
+        <option value="hourly">Hourly</option>
+        <option value="minutely">Minutely</option>
+        <option value="secondly">Secondly</option>
+    </select>
+    <button onclick="renderChart()">Render Chart</button>
+</div>
+<canvas id="myChart"></canvas>
+<div id="query_results"></div>
 {{block_footer()}}
 
 <script>
@@ -119,6 +132,47 @@
                 updateSavedQueriesList();
             }
         }
+    }
+
+    function renderChart() {
+        const timeColumn = document.getElementById('timeColumn').value;
+        const granularity = document.getElementById('timeGranularity').value;
+        const queryData = JSON.parse(localStorage.getItem('lastQueryResponse'));
+
+        // Process the data to fit into the chart
+        // This will depend on the structure of your queryData
+        const processedData = processDataForChart(queryData, timeColumn, granularity);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line', // or 'bar', depending on your preference
+            data: {
+                labels: processedData.labels,
+                datasets: [{
+                    label: 'Data',
+                    data: processedData.data,
+                    // other dataset properties
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: granularity
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function processDataForChart(data, timeColumn, granularity) {
+        // Implement the logic to process queryData into a format suitable for Chart.js
+        // This might include parsing date strings, aggregating data, etc.
+        // Return an object with 'labels' and 'data' arrays
+
+        return { labels: [], data: [] };
     }
 
     // Call updateSavedQueriesList to display saved queries on page load

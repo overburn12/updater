@@ -8,6 +8,7 @@ import sqlite3
 from sqlalchemy import text
 
 app = Flask(__name__)
+self_name = 'updater'
 
 def admin_required(f):
     @wraps(f)
@@ -152,8 +153,12 @@ def run_update(servername):
     if not is_valid_server(servername):
         return jsonify({'error': f"Server '{servername}' not found."}), 404
     
-    update_result = update_server(servername)
-    return jsonify({'result': update_result})
+    if(servername == self_name):
+        subprocess.run("python3 self_update.py")
+        return jsonify({'result': 'something went wrong if you see this'})
+    else:
+        update_result = update_server(servername)
+        return jsonify({'result': update_result})
 
 
 @app.route('/updater/sql/<servername>', methods=['POST', 'GET'])
