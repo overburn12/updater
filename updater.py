@@ -30,6 +30,12 @@ servers = []
 with open('servers.json', 'r') as file:
     servers = json.load(file)
 
+for server in servers:
+    server_name = server['servername']
+    db_path = server['dbpath']
+    print(f"Server loaded: {server_name}, DB Path: {db_path}")
+
+
 #--------------------------------------------------------------------------------------
 # database loading
 #--------------------------------------------------------------------------------------
@@ -54,8 +60,11 @@ def is_valid_task(taskname):
     valid_tasks = ["start", "stop", "restart", "status"]
     return taskname in valid_tasks
 
-def is_valid_server(server):
-    return server in servers
+def is_valid_server(server_name):
+    for server in servers:
+        if server['servername'] == server_name:
+            return True
+    return False
 
 def read_log(server):
     log_file_path = os.path.join(root_directory, server, 'data', 'update.log')

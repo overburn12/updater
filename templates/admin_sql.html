@@ -11,9 +11,20 @@
 {% block content %}
 
 {{ block_header(servername)}}
-    <textarea id="queryInput" style="width: 100%; height: 30em;"></textarea>
-    <button onclick="submitQuery()">Run Query</button>
-    <button onclick="clearOutput()">Clear Output</button>
+<div style="display: flex;">
+    <div style="flex: 1; padding: 10px;">
+        <div id="savedQueriesList"></div>
+        <button onclick="newQuery()">New</button>
+        <button onclick="renameQuery()">Rename</button>
+        <button onclick="deleteQuery()">Delete</button>
+    </div>
+    <div style="flex: 3; padding: 10px;">
+        <textarea id="queryInput" style="width: 100%; height: 30em;"></textarea>
+        <button onclick="submitQuery()">Run Query</button>
+        <button onclick="saveQuery()">Save</button>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+</div>
 {{ block_footer() }}
 
 {{block_header('Query Results')}}
@@ -57,6 +68,61 @@
         tableHtml += "</tbody></table>";
         return tableHtml;
     }
+    function saveQuery() {
+        const title = prompt("Enter a title for the query:");
+        if (title) {
+            const query = document.getElementById('queryInput').value;
+            let queries = JSON.parse(localStorage.getItem('queries')) || [];
+            queries.push({ title, query });
+            localStorage.setItem('queries', JSON.stringify(queries));
+            updateSavedQueriesList();
+        }
+    }
+
+    function updateSavedQueriesList() {
+        let queries = JSON.parse(localStorage.getItem('queries')) || [];
+        let listHtml = queries.map((item, index) => 
+            `<div onclick="loadQuery(${index})">${index}. ${item.title}</div>`
+        ).join('');
+        document.getElementById('savedQueriesList').innerHTML = listHtml;
+    }
+
+    function loadQuery(index) {
+        let queries = JSON.parse(localStorage.getItem('queries'));
+        document.getElementById('queryInput').value = queries[index].query;
+    }
+
+    function newQuery() {
+        document.getElementById('queryInput').value = '';
+    }
+
+    function renameQuery() {
+        const index = prompt("Enter the index of the query to rename:");
+        if (index !== null) {
+            const newTitle = prompt("Enter the new title:");
+            let queries = JSON.parse(localStorage.getItem('queries'));
+            if (queries[index]) {
+                queries[index].title = newTitle;
+                localStorage.setItem('queries', JSON.stringify(queries));
+                updateSavedQueriesList();
+            }
+        }
+    }
+
+    function deleteQuery() {
+        const index = prompt("Enter the index of the query to delete:");
+        if (index !== null) {
+            let queries = JSON.parse(localStorage.getItem('queries'));
+            if (queries[index]) {
+                queries.splice(index, 1);
+                localStorage.setItem('queries', JSON.stringify(queries));
+                updateSavedQueriesList();
+            }
+        }
+    }
+
+    // Call updateSavedQueriesList to display saved queries on page load
+    updateSavedQueriesList();
 </script>
 
 {% endblock %}
