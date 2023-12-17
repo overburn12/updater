@@ -154,7 +154,7 @@ def run_update(servername):
         return jsonify({'error': f"Server '{servername}' not found."}), 404
     
     if(servername == self_name):
-        subprocess.run("python3 self_update.py")
+        subprocess.run('python3 self_update.py', shell=True, text=True)
         return jsonify({'result': 'something went wrong if you see this'})
     else:
         update_result = update_server(servername)
