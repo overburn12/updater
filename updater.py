@@ -109,12 +109,12 @@ def update_server(server):
 # admin routes
 #--------------------------------------------------------------------------------------
 
-@app.route('/updater')
+@app.route('/admin')
 @admin_required
 def admin_dashboard():
     return render_template('admin_dashboard.html')
 
-@app.route('/updater/admin_login', methods=['GET', 'POST'])
+@app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if 'logged_in' in session and session['logged_in']:
         return redirect(url_for('admin_dashboard'))
@@ -129,7 +129,7 @@ def admin_login():
             flash('Invalid credentials')
     return render_template('admin_login.html')  # Your login page template
 
-@app.route('/updater/logout')
+@app.route('/admin/logout')
 def logout():
     session.pop('logged_in', None)
     return redirect(url_for('admin_login'))
@@ -138,7 +138,7 @@ def logout():
 # server api
 #--------------------------------------------------------------------------------------
 
-@app.route('/updater/log/<servername>')
+@app.route('/admin/log/<servername>')
 @admin_required
 def get_server_log(servername):
     if not is_valid_server(servername):
@@ -147,7 +147,7 @@ def get_server_log(servername):
     log_content = read_log(servername)
     return jsonify({'log': log_content})
 
-@app.route('/updater/update/<servername>', methods=['GET','POST'])
+@app.route('/admin/update/<servername>', methods=['GET','POST'])
 @admin_required
 def run_update(servername):
     if not is_valid_server(servername):
@@ -161,7 +161,7 @@ def run_update(servername):
         return jsonify({'result': update_result})
 
 
-@app.route('/updater/sql/<servername>', methods=['POST', 'GET'])
+@app.route('/admin/sql/<servername>', methods=['POST', 'GET'])
 @admin_required
 def execute_query(servername):
     if not is_valid_server(servername):
@@ -201,7 +201,7 @@ def execute_query(servername):
 # systemctl controls
 #--------------------------------------------------------------------------------------
 
-@app.route('/updater/systemctl/<taskname>/<servername>')
+@app.route('/admin/systemctl/<taskname>/<servername>')
 @admin_required
 def run_server_cmd(taskname,servername):
     if not is_valid_server(servername):
