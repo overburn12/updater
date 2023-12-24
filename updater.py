@@ -231,8 +231,8 @@ def gallery_view():
     if not os.path.isdir(base_dir):
         abort(404)  # Return a 404 error if the directory doesn't exist
 
-    # Create an empty list to store the HTML image tags
-    image_tags = []
+    # Create an empty list to store the HTML content
+    gallery_content = []
     
     # Iterate over the files in the directory
     for filename in os.listdir(base_dir):
@@ -241,16 +241,17 @@ def gallery_view():
             # Generate the image source URL
             image_src = f"/admin/img/{filename}"
             
-            # Create the HTML image tag and add it to the list
-            image_tag = f"<img src=\"{image_src}\"> <br>"
-            image_tags.append(image_tag)
+            # Create the HTML image tag and add it to the list, with filename and spacing
+            image_html = f"<img src=\"{image_src}\" style=\"width:50%; height:50%;\"><br>{filename}<br><br><br>"
+            gallery_content.append(image_html)
     
-    # Render the HTML template with the image tags
+    # Render the HTML template with the gallery content
     html = "<html><body><center>"
-    html += "\n".join(image_tags)
+    html += "\n".join(gallery_content)
     html += "</center></body></html>"
     
     return render_template_string(html)
+
 
 #--------------------------------------------------------------------------------------
 # systemctl controls
