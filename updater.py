@@ -244,7 +244,7 @@ def gallery_view():
         image_src = f"/admin/img/{filename}"
             
         # Create the HTML image tag and add it to the list, with filename and spacing
-        image_html = f"<img src=\"{image_src}\" style=\"width:50%; height:50%;\"><br>{filename}<br><br><br>"
+        image_html = f"<img src=\"{image_src}\" style=\"width:500px; height:auto;\"><br>{filename}<br><br><br>"
         gallery_content.append(image_html)
     
     # Render the HTML template with the gallery content
