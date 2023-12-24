@@ -169,7 +169,7 @@ def execute_query(servername):
         return jsonify({'error': f"Server '{servername}' not found."}), 404
     
     if request.method == 'GET':
-        return render_template("admin_sql.html", servername=servername)
+        return render_template("admin_sql.html", servername=servername, current_datetime=datetime.now())
     else:
         query_data = request.get_json()
         query = query_data['query']
