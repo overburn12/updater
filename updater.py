@@ -231,19 +231,21 @@ def gallery_view():
     if not os.path.isdir(base_dir):
         abort(404)  # Return a 404 error if the directory doesn't exist
 
+    # Get a list of image filenames and sort them
+    image_files = [f for f in os.listdir(base_dir) if f.endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+    image_files.sort(reverse=True)  # Sort in descending order to have the most recent at the top
+
     # Create an empty list to store the HTML content
     gallery_content = []
     
-    # Iterate over the files in the directory
-    for filename in os.listdir(base_dir):
-        # Check if the file is an image
-        if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
-            # Generate the image source URL
-            image_src = f"/admin/img/{filename}"
+    # Iterate over the sorted files in the directory
+    for filename in image_files:
+        # Generate the image source URL
+        image_src = f"/admin/img/{filename}"
             
-            # Create the HTML image tag and add it to the list, with filename and spacing
-            image_html = f"<img src=\"{image_src}\" style=\"width:500px; height:auto;\"><br>{filename}<br><br><br>"
-            gallery_content.append(image_html)
+        # Create the HTML image tag and add it to the list, with filename and spacing
+        image_html = f"<img src=\"{image_src}\" style=\"width:50%; height:50%;\"><br>{filename}<br><br><br>"
+        gallery_content.append(image_html)
     
     # Render the HTML template with the gallery content
     html = "<html><body><center>"
@@ -251,7 +253,6 @@ def gallery_view():
     html += "</center></body></html>"
     
     return render_template_string(html)
-
 
 #--------------------------------------------------------------------------------------
 # systemctl controls
