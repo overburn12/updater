@@ -203,54 +203,43 @@ def execute_query(servername):
 # image routes
 #--------------------------------------------------------------------------------------
 
-@app.route('/admin/img/<path:image_name>', methods=['POST', 'GET'])
-@admin_required
+@app.route('/admin/img/<image_name>', methods=['GET'])
 def serve_image(image_name):
-    # Set the base directory
-    base_dir = '/home/overburn'
+    # Base directory where images are stored
+    base_dir = '/home/overburn/tuftedfox/saved'
 
-    # Generate the relative path based on image_name
-    relative_path = safe_join("img", image_name)
-    
-    # Construct the absolute path by joining the base directory with the relative path
-    absolute_path = os.path.join(base_dir, relative_path)
+    # Construct the absolute path for the image
+    absolute_path = os.path.join(base_dir, image_name)
     
     # Check if the file exists
     if not os.path.isfile(absolute_path):
         abort(404)  # Return a 404 error if the file doesn't exist
 
-    print('serve path: ', absolute_path)
+    print('Serving image from path: ', absolute_path)
     
     # Serve the image using send_from_directory
-    return send_from_directory(os.path.dirname(absolute_path), os.path.basename(absolute_path))
+    return send_from_directory(base_dir, image_name)
 
-@app.route('/admin/img/<folder>', methods=['POST', 'GET'])
-@admin_required
-def gallery_view(folder):
-    # Set the base directory
-    base_dir = '/home/overburn'
+@app.route('/admin/saved', methods=['GET'])
+def gallery_view():
+    # Base directory where images are stored
+    base_dir = '/home/overburn/tuftedfox/saved'
+    
+    print('Gallery path: ', base_dir)
 
-    # Generate the relative path based on folder
-    relative_path = safe_join("img", folder)
-    
-    # Construct the absolute path by joining the base directory with the relative path
-    absolute_path = os.path.join(base_dir, relative_path)
-    
-    print('gallery path: ', absolute_path)
+    # Check if the directory exists
+    if not os.path.isdir(base_dir):
+        abort(404)  # Return a 404 error if the directory doesn't exist
 
-    # Check if the folder exists
-    if not os.path.isdir(absolute_path):
-        abort(404)  # Return a 404 error if the folder doesn't exist
-    
     # Create an empty list to store the HTML image tags
     image_tags = []
     
-    # Iterate over the files in the folder
-    for filename in os.listdir(absolute_path):
+    # Iterate over the files in the directory
+    for filename in os.listdir(base_dir):
         # Check if the file is an image
         if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
             # Generate the image source URL
-            image_src = f"/admin/img/{folder}/{filename}"
+            image_src = f"/admin/img/{filename}"
             
             # Create the HTML image tag and add it to the list
             image_tag = f"<img src=\"{image_src}\"> <br>"
@@ -262,7 +251,6 @@ def gallery_view(folder):
     html += "</center></body></html>"
     
     return render_template_string(html)
-
 
 #--------------------------------------------------------------------------------------
 # systemctl controls
