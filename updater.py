@@ -203,14 +203,17 @@ def execute_query(servername):
 # image routes
 #--------------------------------------------------------------------------------------
 
-@app.route('/admin/<servername>/img/<path:image_name>', methods=['POST', 'GET'])
+@app.route('/admin/img/<path:image_name>', methods=['POST', 'GET'])
 @admin_required
-def serve_image(servername, image_name):
-    # Generate the relative path based on the servername and image_name
-    relative_path = safe_join(servername, "img", image_name)
+def serve_image(image_name):
+    # Set the base directory
+    base_dir = '/home/overburn'
+
+    # Generate the relative path based on image_name
+    relative_path = safe_join("img", image_name)
     
-    # Construct the absolute path using the current working directory
-    absolute_path = os.path.abspath(relative_path)
+    # Construct the absolute path by joining the base directory with the relative path
+    absolute_path = os.path.join(base_dir, relative_path)
     
     # Check if the file exists
     if not os.path.isfile(absolute_path):
@@ -221,14 +224,17 @@ def serve_image(servername, image_name):
     # Serve the image using send_from_directory
     return send_from_directory(os.path.dirname(absolute_path), os.path.basename(absolute_path))
 
-@app.route('/admin/<servername>/img/<folder>', methods=['POST', 'GET'])
+@app.route('/admin/img/<folder>', methods=['POST', 'GET'])
 @admin_required
-def gallery_view(servername, folder):
-    # Generate the relative path based on the servername and folder
-    relative_path = safe_join(servername, "img", folder)
+def gallery_view(folder):
+    # Set the base directory
+    base_dir = '/home/overburn'
+
+    # Generate the relative path based on folder
+    relative_path = safe_join("img", folder)
     
-    # Construct the absolute path using the current working directory
-    absolute_path = os.path.abspath(relative_path)
+    # Construct the absolute path by joining the base directory with the relative path
+    absolute_path = os.path.join(base_dir, relative_path)
     
     print('gallery path: ', absolute_path)
 
@@ -241,10 +247,10 @@ def gallery_view(servername, folder):
     
     # Iterate over the files in the folder
     for filename in os.listdir(absolute_path):
-        # Check if the file is an image (you can add more image extensions if necessary)
+        # Check if the file is an image
         if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
             # Generate the image source URL
-            image_src = f"/admin/{servername}/img/{folder}/{filename}"
+            image_src = f"/admin/img/{folder}/{filename}"
             
             # Create the HTML image tag and add it to the list
             image_tag = f"<img src=\"{image_src}\"> <br>"
@@ -256,6 +262,7 @@ def gallery_view(servername, folder):
     html += "</center></body></html>"
     
     return render_template_string(html)
+
 
 #--------------------------------------------------------------------------------------
 # systemctl controls
