@@ -198,6 +198,65 @@ def execute_query(servername):
         return jsonify(result)
 
 
+
+#--------------------------------------------------------------------------------------
+# image routes
+#--------------------------------------------------------------------------------------
+
+@app.route('/admin/<servername>/img/<path:image_name>', methods=['POST', 'GET'])
+@admin_required
+def serve_image(servername, image_name):
+    # Generate the relative path based on the servername and image_name
+    relative_path = safe_join(servername, "img", image_name)
+    
+    # Construct the absolute path using the current working directory
+    absolute_path = os.path.abspath(relative_path)
+    
+    # Check if the file exists
+    if not os.path.isfile(absolute_path):
+        abort(404)  # Return a 404 error if the file doesn't exist
+
+    print('serve path: ', absolute_path)
+    
+    # Serve the image using send_from_directory
+    return send_from_directory(os.path.dirname(absolute_path), os.path.basename(absolute_path))
+
+@app.route('/admin/<servername>/img/<folder>', methods=['POST', 'GET'])
+@admin_required
+def gallery_view(servername, folder):
+    # Generate the relative path based on the servername and folder
+    relative_path = safe_join(servername, "img", folder)
+    
+    # Construct the absolute path using the current working directory
+    absolute_path = os.path.abspath(relative_path)
+    
+    print('gallery path: ', absolute_path)
+
+    # Check if the folder exists
+    if not os.path.isdir(absolute_path):
+        abort(404)  # Return a 404 error if the folder doesn't exist
+    
+    # Create an empty list to store the HTML image tags
+    image_tags = []
+    
+    # Iterate over the files in the folder
+    for filename in os.listdir(absolute_path):
+        # Check if the file is an image (you can add more image extensions if necessary)
+        if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+            # Generate the image source URL
+            image_src = f"/admin/{servername}/img/{folder}/{filename}"
+            
+            # Create the HTML image tag and add it to the list
+            image_tag = f"<img src=\"{image_src}\"> <br>"
+            image_tags.append(image_tag)
+    
+    # Render the HTML template with the image tags
+    html = "<html><body><center>"
+    html += "\n".join(image_tags)
+    html += "</center></body></html>"
+    
+    return render_template_string(html)
+
 #--------------------------------------------------------------------------------------
 # systemctl controls
 #--------------------------------------------------------------------------------------
@@ -229,58 +288,11 @@ def run_server_cmd(taskname,servername):
     return "Server task completed."
 
 #--------------------------------------------------------------------------------------
-# image routes
-#--------------------------------------------------------------------------------------
 
-@app.route('/admin/<servername>/img/<path:image_name>', methods=['POST', 'GET'])
-@admin_required
-def serve_image(servername, image_name):
-    # Generate the relative path based on the servername and image_name
-    relative_path = safe_join(servername, "img", image_name)
-    
-    # Construct the absolute path using the current working directory
-    absolute_path = os.path.abspath(relative_path)
-    
-    # Check if the file exists
-    if not os.path.isfile(absolute_path):
-        abort(404)  # Return a 404 error if the file doesn't exist
-    
-    # Serve the image using send_from_directory
-    return send_from_directory(os.path.dirname(absolute_path), os.path.basename(absolute_path))
-
-@app.route('/admin/<servername>/img/<folder>', methods=['POST', 'GET'])
-@admin_required
-def gallery_view(servername, folder):
-    # Generate the relative path based on the servername and folder
-    relative_path = safe_join(servername, "img", folder)
-    
-    # Construct the absolute path using the current working directory
-    absolute_path = os.path.abspath(relative_path)
-    
-    # Check if the folder exists
-    if not os.path.isdir(absolute_path):
-        abort(404)  # Return a 404 error if the folder doesn't exist
-    
-    # Create an empty list to store the HTML image tags
-    image_tags = []
-    
-    # Iterate over the files in the folder
-    for filename in os.listdir(absolute_path):
-        # Check if the file is an image (you can add more image extensions if necessary)
-        if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
-            # Generate the image source URL
-            image_src = f"/admin/{servername}/img/{folder}/{filename}"
-            
-            # Create the HTML image tag and add it to the list
-            image_tag = f"<img src=\"{image_src}\"> <br>"
-            image_tags.append(image_tag)
-    
-    # Render the HTML template with the image tags
-    html = "<html><body><center>"
-    html += "\n".join(image_tags)
-    html += "</center></body></html>"
-    
-    return render_template_string(html)
+@app.errorhandler(404)
+def page_not_found(e):
+    path = request.path
+    return f"404: The requested path '{path}' was not found.", 404
 
 #--------------------------------------------------------------------------------------
 
