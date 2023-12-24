@@ -1,7 +1,8 @@
 import subprocess, json, os, random, re
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, abort, Response, g, send_from_directory, redirect, url_for, session, flash
+from flask import Flask, render_template, request, jsonify, abort, Response, g, send_from_directory, redirect, url_for, session, flash, render_template_string
 from functools import wraps
+from werkzeug.utils import safe_join
 from werkzeug.security import check_password_hash, generate_password_hash
 from dotenv import load_dotenv
 import sqlite3
@@ -226,6 +227,60 @@ def run_server_cmd(taskname,servername):
         except subprocess.CalledProcessError:
             return jsonify({"error": "Failed to run the server task."}) 
     return "Server task completed."
+
+#--------------------------------------------------------------------------------------
+# image route
+#--------------------------------------------------------------------------------------
+
+@app.route('/admin/<servername>/img/<path:image_name>')
+@admin_required
+def serve_image(servername, image_name):
+    # Generate the relative path based on the servername and image_name
+    relative_path = safe_join(servername, "img", image_name)
+    
+    # Construct the absolute path using the current working directory
+    absolute_path = os.path.abspath(relative_path)
+    
+    # Check if the file exists
+    if not os.path.isfile(absolute_path):
+        abort(404)  # Return a 404 error if the file doesn't exist
+    
+    # Serve the image using send_from_directory
+    return send_from_directory(os.path.dirname(absolute_path), os.path.basename(absolute_path))
+
+@app.route('/admin/<servername>/img/<folder>')
+@admin_required
+def gallery_view(servername, folder):
+    # Generate the relative path based on the servername and folder
+    relative_path = safe_join(servername, "img", folder)
+    
+    # Construct the absolute path using the current working directory
+    absolute_path = os.path.abspath(relative_path)
+    
+    # Check if the folder exists
+    if not os.path.isdir(absolute_path):
+        abort(404)  # Return a 404 error if the folder doesn't exist
+    
+    # Create an empty list to store the HTML image tags
+    image_tags = []
+    
+    # Iterate over the files in the folder
+    for filename in os.listdir(absolute_path):
+        # Check if the file is an image (you can add more image extensions if necessary)
+        if filename.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+            # Generate the image source URL
+            image_src = f"/admin/{servername}/img/{folder}/{filename}"
+            
+            # Create the HTML image tag and add it to the list
+            image_tag = f"<img src=\"{image_src}\"> <br>"
+            image_tags.append(image_tag)
+    
+    # Render the HTML template with the image tags
+    html = "<html><body><center>"
+    html += "\n".join(image_tags)
+    html += "</center></body></html>"
+    
+    return render_template_string(html)
 
 #--------------------------------------------------------------------------------------
 
