@@ -202,7 +202,7 @@ def execute_query(servername):
 # systemctl controls
 #--------------------------------------------------------------------------------------
 
-@app.route('/admin/systemctl/<taskname>/<servername>')
+@app.route('/admin/systemctl/<taskname>/<servername>', methods=['POST', 'GET'])
 @admin_required
 def run_server_cmd(taskname,servername):
     if not is_valid_server(servername):
@@ -229,10 +229,10 @@ def run_server_cmd(taskname,servername):
     return "Server task completed."
 
 #--------------------------------------------------------------------------------------
-# image route
+# image routes
 #--------------------------------------------------------------------------------------
 
-@app.route('/admin/<servername>/img/<path:image_name>')
+@app.route('/admin/<servername>/img/<path:image_name>', methods=['POST', 'GET'])
 @admin_required
 def serve_image(servername, image_name):
     # Generate the relative path based on the servername and image_name
@@ -248,7 +248,7 @@ def serve_image(servername, image_name):
     # Serve the image using send_from_directory
     return send_from_directory(os.path.dirname(absolute_path), os.path.basename(absolute_path))
 
-@app.route('/admin/<servername>/img/<folder>')
+@app.route('/admin/<servername>/img/<folder>', methods=['POST', 'GET'])
 @admin_required
 def gallery_view(servername, folder):
     # Generate the relative path based on the servername and folder
