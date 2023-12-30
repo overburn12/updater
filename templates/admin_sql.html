@@ -243,7 +243,7 @@
         if (data.rows.length === 0) {
             return [];
         }
-    
+        console.log(data);
         // Get the first and last time values from the data
         const firstTime = new Date(data.rows[0][timeColumn]);
         const lastTime = new Date(data.rows[data.rows.length - 1][timeColumn]);
