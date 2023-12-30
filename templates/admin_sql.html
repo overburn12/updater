@@ -43,7 +43,7 @@
 
 {{block_header('Query Results')}}
 <div>
-    <input type="text" id="timeColumn" placeholder="Time Column Name" value="hour_block">
+    <input type="text" id="timeColumn" placeholder="Time Column Name" value="date">
     <select id="timeGranularity">
         <option value="yearly">Yearly</option>
         <option value="monthly">Monthly</option>
@@ -52,7 +52,7 @@
         <option value="minutely">Minutely</option>
         <option value="secondly">Secondly</option>
     </select>
-    <input type="text" id="dataColumn" placeholder="Data Column Name" value="hit_count">
+    <input type="text" id="dataColumn" placeholder="Data Column Name" value="total_hits">
     <button onclick="renderChart()">Render Chart</button>
 </div>
 <div id="chartContainer">
